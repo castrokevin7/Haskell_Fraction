@@ -4,62 +4,61 @@ import Data.Ratio
 
 infix 7 :/
 
--------------------------------------------------------------------
---              Category: Basics
--------------------------------------------------------------------
-
 data Fraction = Integer :/ Integer
-        deriving (Eq)
-
-num, den :: Fraction -> Integer
-num (x:/_) = x
-den (_:/y) = y
+    deriving (Eq)
 
 reduce  :: Fraction -> Fraction
-reduce (x:/0)
-        | x < 0     = (-1):/0
-        | otherwise = 1:/0
-reduce (x:/y) =
-        (u `quot` d):/(v `quot` d)
-        where
-            d = gcd u v
-            (u, v)
-                | y < 0     = (-x, -y)
-                | otherwise = (x, y)
+reduce (num:/0) =
+    if num < 0 
+    then (-1):/0
+    else 1:/0
+
+reduce (num:/den) =
+    (u `quot` d):/(v `quot` d)
+    where
+        d      = gcd u v
+        (u, v) =
+            if den < 0 
+            then (-num, -den)
+            else (num, den)
 
 (//) :: Integer -> Integer -> Fraction
-x // y = reduce (x:/y)
+num // den = reduce (num:/den)
 
 instance Read Fraction where
     readsPrec p =
-        readParen (p > 7) (\r -> [(x//y, u) | (x, s)     <- reads r,
-                                              ("//", t) <- lex s,
-                                              (y, u)    <- reads t ])
+        readParen (p > 7) (\r -> [(num//den, u) | (num, s)  <- reads r,
+                                                  ("//", t) <- lex s,
+                                                  (den, u)  <- reads t])
 
 instance Show Fraction where
-    showsPrec p (x:/y)
-        | y == 1 = showsPrec p x
-        | otherwise = showParen (p > 7) (shows x . showString "/" . shows y)
+    showsPrec p (num:/den) =
+        if den == 1
+        then showsPrec p num
+        else showParen (p > 7) (shows num . showString "/" . shows den)
 
 instance Ord Fraction where
-    compare (x:/y) (x':/y') = compare (x * y') (x' * y)
+    compare (num:/den) (num':/den') = compare (num * den') (num' * den)
 
 instance Num Fraction where
-    (x:/y) + (x':/y')  = reduce ((x * y' + x' * y):/(y * y'))
-    (x:/y) - (x':/y')  = reduce ((x * y' - x' * y):/(y * y'))
-    (x:/y) * (x':/y')  = reduce ((x * x'):/(y * y'))
-    negate (x:/y)      = negate x:/y
-    abs (x:/y)         = abs x:/y
-    signum (x:/_)      = signum x:/1
-    fromInteger n      = fromInteger n:/1
+    (num:/den) + (num':/den')  = reduce ((num * den' + num' * den):/(den * den'))
+    (num:/den) - (num':/den')  = reduce ((num * den' - num' * den):/(den * den'))
+    (num:/den) * (num':/den')  = reduce ((num * num'):/(den * den'))
+    negate (num:/den) = negate num:/den
+    abs (num:/den)    = abs num:/den
+    signum (num:/_)   = signum num:/1
+    fromInteger n     = fromInteger n:/1
 
 instance Fractional Fraction where
-    (x:/0) / (x':/0)  = ((signum x * signum x'):/0)
-    (_:/_) / (_:/0)   = (0:/1)
-    (x:/0) / (_:/_)   = (x:/0)
-    (x:/y) / (x':/y') = reduce ((x * y') :/ (y * x'))
-    recip (x:/y)      = if x < 0 then (-y):/(-x) else y:/x
-    fromRational a    = x:/y
-                        where
-                            x = numerator a
-                            y = denominator a
+    (num:/0) / (num':/0) = ((signum num * signum num'):/0)
+    (_:/_) / (_:/0)      = (0:/1)
+    (num:/0) / (_:/_)    = (num:/0)
+    (num:/den) / (num':/den') = reduce ((num * den') :/ (den * num'))
+    recip (num:/den)          = 
+        if num < 0 
+        then (-den):/(-num) 
+        else den:/num    
+    fromRational a = num:/den
+        where
+            num = numerator a
+            den = denominator a
